@@ -26,7 +26,22 @@ export function hasRecentSignIn(token: Pick<DecodedIdToken, "auth_time">, nowSec
 export function isSameOrigin(request: Request) {
   const origin = request.headers.get("origin");
   if (!origin) return false;
-  return origin === new URL(request.url).origin;
+
+  try {
+    const originUrl = new URL(origin);
+    if (origin !== originUrl.origin) return false;
+
+    const requestUrl = new URL(request.url);
+    const forwardedHost = request.headers.get("x-forwarded-host")?.split(",", 1)[0]?.trim();
+    const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",", 1)[0]?.trim();
+    const host = forwardedHost || request.headers.get("host") || requestUrl.host;
+    const protocol = forwardedProto || requestUrl.protocol.slice(0, -1);
+    const publicOrigin = new URL(`${protocol}://${host}`).origin;
+
+    return originUrl.origin === publicOrigin;
+  } catch {
+    return false;
+  }
 }
 
 export async function getAuthorizedUser() {

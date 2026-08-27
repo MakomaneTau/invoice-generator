@@ -28,4 +28,30 @@ describe("session authorization policy", () => {
     expect(isSameOrigin(new Request("https://invoice.example/api", { method: "POST", headers: { Origin: "https://attacker.example" } }))).toBe(false);
     expect(isSameOrigin(new Request("https://invoice.example/api", { method: "POST", headers: { Origin: "https://invoice.example" } }))).toBe(true);
   });
+
+  it("accepts the public origin supplied by a trusted reverse proxy", () => {
+    const request = new Request("http://internal-function/api", {
+      method: "POST",
+      headers: {
+        Origin: "https://invoice.example",
+        "X-Forwarded-Host": "invoice.example",
+        "X-Forwarded-Proto": "https",
+      },
+    });
+
+    expect(isSameOrigin(request)).toBe(true);
+  });
+
+  it("rejects mismatched forwarded hosts and protocols", () => {
+    const headers = {
+      Origin: "https://invoice.example",
+      "X-Forwarded-Host": "attacker.example",
+      "X-Forwarded-Proto": "https",
+    };
+    expect(isSameOrigin(new Request("http://internal-function/api", { method: "POST", headers }))).toBe(false);
+
+    headers["X-Forwarded-Host"] = "invoice.example";
+    headers["X-Forwarded-Proto"] = "http";
+    expect(isSameOrigin(new Request("http://internal-function/api", { method: "POST", headers }))).toBe(false);
+  });
 });
