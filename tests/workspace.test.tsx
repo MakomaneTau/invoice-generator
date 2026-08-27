@@ -23,9 +23,11 @@ describe("invoice workspace", () => {
     const draftName = await screen.findByLabelText("Draft name");
     const displayName = screen.getByLabelText(/^Contact \/ display name/);
     const invoiceNumber = screen.getByLabelText("Invoice number");
-    expect(draftName).toHaveValue("INV-0001106");
+    expect(draftName).toHaveValue("INV-0000000");
+    expect(displayName).toHaveAttribute("placeholder", "Customer name");
+    expect(screen.getByLabelText("Registered company name")).toHaveAttribute("placeholder", "Customer Company (Pty) Ltd");
     fireEvent.change(displayName, { target: { value: "Hype Nation" } });
-    expect(draftName).toHaveValue("INV-0001106 - Hype Nation");
+    expect(draftName).toHaveValue("INV-0000000 - Hype Nation");
     fireEvent.change(invoiceNumber, { target: { value: "inv-1200" } });
     expect(draftName).toHaveValue("INV-1200 - Hype Nation");
 

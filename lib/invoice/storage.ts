@@ -6,7 +6,7 @@ import {
 } from "./types";
 
 export const STORAGE_KEY = "real-is-rare:invoice-workspace";
-export const INITIAL_SEQUENCE = 1106;
+export const INITIAL_SEQUENCE = 0;
 
 function isDraft(value: unknown): value is InvoiceDraft {
   if (!value || typeof value !== "object") return false;

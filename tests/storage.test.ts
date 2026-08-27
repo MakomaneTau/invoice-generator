@@ -6,7 +6,7 @@ describe("invoice storage", () => {
     const state = createInitialState();
     expect(state.nextSequence).toBe(INITIAL_SEQUENCE);
     expect(state.drafts).toHaveLength(1);
-    expect(state.drafts[0].invoiceNumber).toBe("INV-0001106");
+    expect(state.drafts[0].invoiceNumber).toBe("INV-0000000");
   });
 
   it("recovers from malformed or outdated local data", () => {
@@ -21,6 +21,6 @@ describe("invoice storage", () => {
     const restored = parseStoredState(JSON.stringify(state));
     expect(restored.activeDraftId).toBe(state.activeDraftId);
     expect(restored.drafts[0].id).toBe(state.drafts[0].id);
-    expect(restored.drafts[0].name).toBe("INV-0001106 - Hype Nation");
+    expect(restored.drafts[0].name).toBe("INV-0000000 - Hype Nation");
   });
 });
