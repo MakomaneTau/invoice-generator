@@ -4,13 +4,13 @@ import { SELLER_PROFILE } from "@/lib/invoice/profile";
 import type { InvoiceDraft, SellerProfile } from "@/lib/invoice/types";
 
 const colours = {
-  ink: "#16241f",
-  muted: "#64706b",
-  green: "#153d32",
-  pale: "#eef2ed",
+  ink: "#1a1a1a",
+  muted: "#686868",
+  black: "#171717",
+  pale: "#eeeeee",
   warm: "#f7f3eb",
   gold: "#c99552",
-  line: "#dce2dc",
+  line: "#dedede",
   white: "#ffffff",
 };
 
@@ -20,9 +20,9 @@ const styles = StyleSheet.create({
   brand: { flexDirection: "row", alignItems: "center", gap: 12 },
   logo: { width: 62, height: 64, objectFit: "contain" },
   kicker: { fontSize: 7, letterSpacing: 1.2, textTransform: "uppercase", color: colours.gold, marginBottom: 4 },
-  businessName: { fontFamily: "Helvetica-Bold", fontSize: 15, color: colours.green },
+  businessName: { fontFamily: "Helvetica-Bold", fontSize: 15, color: colours.black },
   titleBlock: { alignItems: "flex-end" },
-  invoiceTitle: { fontFamily: "Helvetica-Bold", fontSize: 25, textTransform: "uppercase", letterSpacing: 1.5, color: colours.green },
+  invoiceTitle: { fontFamily: "Helvetica-Bold", fontSize: 25, textTransform: "uppercase", letterSpacing: 1.5, color: colours.black },
   invoiceNumber: { fontFamily: "Helvetica-Bold", fontSize: 10, marginTop: 4 },
   balanceLabel: { fontSize: 7, color: colours.muted, textTransform: "uppercase", letterSpacing: 0.8, marginTop: 9 },
   balance: { fontFamily: "Helvetica-Bold", fontSize: 14, marginTop: 2 },
@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
   metaLabel: { fontSize: 6.5, color: colours.muted, textTransform: "uppercase", letterSpacing: 0.7, marginBottom: 3 },
   metaValue: { fontFamily: "Helvetica-Bold", fontSize: 8.5 },
   table: { marginBottom: 18 },
-  tableHeader: { flexDirection: "row", backgroundColor: colours.green, color: colours.white, minHeight: 27, alignItems: "center", paddingHorizontal: 8 },
+  tableHeader: { flexDirection: "row", backgroundColor: colours.black, color: colours.white, minHeight: 27, alignItems: "center", paddingHorizontal: 8 },
   tableRow: { flexDirection: "row", minHeight: 31, alignItems: "center", borderBottomWidth: 1, borderBottomColor: colours.line, paddingHorizontal: 8, paddingVertical: 6 },
   colIndex: { width: "6%" },
   colDescription: { width: "46%", paddingRight: 6 },
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   paymentValue: { width: "58%", fontFamily: "Helvetica-Bold" },
   totals: { width: "40%" },
   totalRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colours.line },
-  dueRow: { flexDirection: "row", justifyContent: "space-between", padding: 10, backgroundColor: colours.green, color: colours.white },
+  dueRow: { flexDirection: "row", justifyContent: "space-between", padding: 10, backgroundColor: colours.black, color: colours.white },
   dueText: { fontFamily: "Helvetica-Bold", fontSize: 10 },
   footer: { position: "absolute", left: 38, right: 38, bottom: 22, flexDirection: "row", alignItems: "center", gap: 10 },
   footerLine: { flexGrow: 1, height: 1, backgroundColor: colours.line },
