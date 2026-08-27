@@ -99,4 +99,24 @@ describe("invoice workspace", () => {
     expect(await screen.findByText(/Archive unavailable/)).toBeVisible();
     expect(click).not.toHaveBeenCalled();
   });
+
+  it("handles an invoice number already in history without throwing", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "This invoice number is already in history" }), { status: 409 })));
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+
+    render(<InvoiceWorkspace />);
+    await screen.findByLabelText("Draft name");
+    fireEvent.change(screen.getByLabelText(/^Contact \/ display name/), { target: { value: "Hype Nation" } });
+    fireEvent.change(screen.getByLabelText("Registered company name"), { target: { value: "HYPE NATION PTY LTD" } });
+    fireEvent.change(screen.getByLabelText("Address"), { target: { value: "Centurion" } });
+    fireEvent.change(screen.getByLabelText("Description"), { target: { value: "T-shirts" } });
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".app-header .button-primary")!);
+
+    expect(await screen.findByText(/Open History to download the finalized invoice/)).toBeVisible();
+    expect(screen.getByLabelText(/^Invoice number/)).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText("This invoice number is already finalized and cannot be reused.")).toBeVisible();
+    expect(click).not.toHaveBeenCalled();
+    expect(consoleError).not.toHaveBeenCalled();
+  });
 });

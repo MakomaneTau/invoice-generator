@@ -6,7 +6,7 @@ import type { InvoiceDraft, InvoiceErrors, LineItem } from "@/lib/invoice/types"
 type Props = {
   draft: InvoiceDraft;
   errors: InvoiceErrors;
-  duplicateNumber: boolean;
+  invoiceNumberConflict?: string;
   onChange: (draft: InvoiceDraft) => void;
 };
 
@@ -45,7 +45,7 @@ function RateInput({ rateCents, invalid, onChange }: { rateCents: number; invali
   );
 }
 
-export function InvoiceEditor({ draft, errors, duplicateNumber, onChange }: Props) {
+export function InvoiceEditor({ draft, errors, invoiceNumberConflict, onChange }: Props) {
   const update = <K extends keyof InvoiceDraft>(key: K, value: InvoiceDraft[K]) => {
     const nextDraft = { ...draft, [key]: value };
     onChange({ ...nextDraft, name: formatDraftName(nextDraft.invoiceNumber, nextDraft.customer.displayName) });
@@ -70,7 +70,7 @@ export function InvoiceEditor({ draft, errors, duplicateNumber, onChange }: Prop
         <div className="section-heading"><span>01</span><div><h2>Invoice details</h2><p>Reference, timing and payment terms.</p></div></div>
         <div className="form-grid two-columns">
           <label className="field full-field">Draft name<input value={draft.name} readOnly aria-invalid={Boolean(errors.name)} /><FieldError message={errors.name} /></label>
-          <label className="field">Invoice number<input value={draft.invoiceNumber} onChange={(event) => update("invoiceNumber", event.target.value.toUpperCase())} aria-invalid={Boolean(errors.invoiceNumber || duplicateNumber)} /><FieldError message={errors.invoiceNumber} />{duplicateNumber && <span className="field-warning">This number is already used by another draft.</span>}</label>
+          <label className="field">Invoice number<input value={draft.invoiceNumber} onChange={(event) => update("invoiceNumber", event.target.value.toUpperCase())} aria-invalid={Boolean(errors.invoiceNumber || invoiceNumberConflict)} /><FieldError message={errors.invoiceNumber} />{invoiceNumberConflict && <span className="field-warning">{invoiceNumberConflict}</span>}</label>
           <label className="field">Terms<input value={draft.terms} onChange={(event) => update("terms", event.target.value)} placeholder="Due on receipt" /></label>
           <label className="field">Invoice date<input type="date" value={draft.invoiceDate} onChange={(event) => update("invoiceDate", event.target.value)} aria-invalid={Boolean(errors.invoiceDate)} /><FieldError message={errors.invoiceDate} /></label>
           <label className="field">Due date<input type="date" value={draft.dueDate} min={draft.invoiceDate} onChange={(event) => update("dueDate", event.target.value)} aria-invalid={Boolean(errors.dueDate)} /><FieldError message={errors.dueDate} /></label>

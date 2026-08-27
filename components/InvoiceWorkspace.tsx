@@ -38,6 +38,7 @@ export function InvoiceWorkspace() {
   const [showErrors, setShowErrors] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [historyConflictNumber, setHistoryConflictNumber] = useState<string | null>(null);
 
   useEffect(() => {
     const hydrate = window.setTimeout(() => {
@@ -78,11 +79,19 @@ export function InvoiceWorkspace() {
 
   const activeDraft = state?.drafts.find((draft) => draft.id === state.activeDraftId) ?? state?.drafts[0] ?? null;
   const errors = useMemo<InvoiceErrors>(() => activeDraft && showErrors ? validateInvoice(activeDraft) : {}, [activeDraft, showErrors]);
-  const duplicateNumber = Boolean(activeDraft && state?.drafts.some((draft) => draft.id !== activeDraft.id && draft.invoiceNumber.trim().toLowerCase() === activeDraft.invoiceNumber.trim().toLowerCase()));
+  const normalizedActiveNumber = activeDraft?.invoiceNumber.trim().toLowerCase() ?? "";
+  const duplicateDraftNumber = Boolean(activeDraft && state?.drafts.some((draft) => draft.id !== activeDraft.id && draft.invoiceNumber.trim().toLowerCase() === normalizedActiveNumber));
+  const duplicateHistoryNumber = Boolean(normalizedActiveNumber && historyConflictNumber === normalizedActiveNumber);
+  const invoiceNumberConflict = duplicateDraftNumber
+    ? "This number is already used by another draft."
+    : duplicateHistoryNumber
+      ? "This invoice number is already finalized and cannot be reused."
+      : undefined;
 
   const updateActiveDraft = (nextDraft: InvoiceDraft) => {
     if (!state || !activeDraft) return;
     if (saveStatus !== "error") setSaveStatus("saving");
+    if (nextDraft.invoiceNumber.trim().toLowerCase() !== historyConflictNumber) setHistoryConflictNumber(null);
     const withTimestamp = { ...nextDraft, updatedAt: new Date().toISOString() };
     setState({ ...state, drafts: state.drafts.map((draft) => draft.id === activeDraft.id ? withTimestamp : draft) });
   };
@@ -121,7 +130,7 @@ export function InvoiceWorkspace() {
     if (!state || !activeDraft || isDownloading) return;
     setShowErrors(true);
     const validationErrors = validateInvoice(activeDraft);
-    if (duplicateNumber) validationErrors.invoiceNumber = "Choose a unique invoice number before downloading.";
+    if (invoiceNumberConflict) validationErrors.invoiceNumber = invoiceNumberConflict;
     if (Object.keys(validationErrors).length) {
       setNotice("Review the highlighted fields before downloading.");
       setMobileView("editor");
@@ -143,8 +152,16 @@ export function InvoiceWorkspace() {
         window.location.assign("/login");
         return;
       }
+      const result = await archiveResponse.json().catch(() => null) as { error?: string } | null;
+      if (archiveResponse.status === 409) {
+        setHistoryConflictNumber(normalizedActiveNumber);
+        setShowErrors(true);
+        setMobileView("editor");
+        setNotice(`${result?.error || "This invoice number is already in history"}. Open History to download the finalized invoice, or enter a new invoice number.`);
+        window.setTimeout(() => document.querySelector<HTMLInputElement>("input[aria-invalid='true']")?.focus(), 0);
+        return;
+      }
       if (!archiveResponse.ok) {
-        const result = await archiveResponse.json().catch(() => null) as { error?: string } | null;
         throw new Error(result?.error || "Invoice could not be archived");
       }
       downloadPdfBlob(blob, filename);
@@ -194,7 +211,7 @@ export function InvoiceWorkspace() {
 
         <section className={`editor-panel ${mobileView === "editor" ? "mobile-active" : ""}`} aria-label="Invoice editor">
           {showErrors && Object.keys(errors).length > 0 && <div className="error-summary" role="alert"><strong>Invoice needs a little more information.</strong><span>Complete the highlighted fields, then download again.</span></div>}
-          <InvoiceEditor draft={activeDraft} errors={errors} duplicateNumber={duplicateNumber} onChange={updateActiveDraft} />
+          <InvoiceEditor draft={activeDraft} errors={errors} invoiceNumberConflict={invoiceNumberConflict} onChange={updateActiveDraft} />
           <div className="mobile-download"><button type="button" className="button button-primary" onClick={downloadPdf} disabled={isDownloading}><DownloadIcon />{isDownloading ? "Creating PDF…" : "Download PDF"}</button></div>
         </section>
 
