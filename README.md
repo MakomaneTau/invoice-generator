@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Real Is Rare Invoice Studio
 
-## Getting Started
+A private Next.js invoice workspace with local draft autosaving and immutable finalized-invoice history backed by Firebase Authentication and Cloud Firestore. PDFs are generated on demand in the browser and downloaded directly to the device; no PDF files are stored in Firebase.
 
-First, run the development server:
+## Firebase project setup
+
+1. In the existing Firebase project, register a Web app and enable **Authentication > Email/Password**.
+2. Create the single authorized user manually in Authentication. Do not add a public signup flow.
+3. Create the default Cloud Firestore database in production mode.
+4. Enable email-enumeration protection for the project.
+5. Create a server service account for the deployed Next.js application and grant only the Firestore permissions it needs.
+6. Copy `.env.example` to `.env.local` and fill in the Web app values, service-account values, and authorized user UID.
+7. Deploy the locked Firestore rules and indexes with `npx firebase deploy --only firestore` from an authenticated Firebase CLI session.
+
+Keep `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`, and `ALLOWED_FIREBASE_UID` server-only. Never prefix them with `NEXT_PUBLIC_` or commit `.env.local`.
+
+## Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The Firebase Emulator Suite can be started without touching the live project:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run emulators
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The Auth emulator uses port `9099`, Firestore `8080`, and the Emulator UI `4000`. Point the app at those emulators only in local development; never configure emulator host variables in production.
 
-## Learn More
+The current Firebase CLI requires JDK 21 or newer for the Firestore emulator.
 
-To learn more about Next.js, take a look at the following resources:
+## Validation
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run test:firebase
+npm run test:e2e
+npm run build
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`test:firebase` starts an isolated Firestore emulator and verifies that browser clients cannot access it. The application uses Firebase Admin on the server after checking the authorized session.
 
-## Deploy on Vercel
+## Data behavior
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Editable drafts stay in browser `localStorage`.
+- Finalizing saves a validated invoice, seller profile snapshot, total, and PDF template version to Firestore.
+- PDFs are regenerated from the stored snapshot and downloaded directly to the device.
+- Finalized invoice numbers are unique per authorized user.
+- Finalized history has no update or delete endpoint.
