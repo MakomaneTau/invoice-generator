@@ -6,21 +6,38 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:firebase": "firebase emulators:exec --only firestore --project demo-invoice-generator \"vitest run --config vitest.firebase.config.ts\"",
+    "emulators": "firebase emulators:start --project demo-invoice-generator",
+    "test:e2e": "node scripts/run-e2e.mjs",
+    "test:e2e:direct": "playwright test"
   },
   "dependencies": {
+    "@react-pdf/renderer": "4.8.1",
+    "firebase": "^12.18.0",
+    "firebase-admin": "^14.3.0",
     "next": "16.2.7",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "@playwright/test": "1.55.1",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
+    "firebase-tools": "^15.28.1",
+    "jsdom": "^26.1.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   }
 }
