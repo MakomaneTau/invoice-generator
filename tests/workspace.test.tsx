@@ -60,6 +60,22 @@ describe("invoice workspace", () => {
     expect(rate).toHaveAttribute("step", "0.01");
   });
 
+  it("updates and saves payment details per invoice", async () => {
+    render(<InvoiceWorkspace />);
+    const bank = await screen.findByLabelText("Bank name");
+    const accountNumber = screen.getByLabelText("Account number");
+
+    expect(bank).toHaveValue("Capitec");
+    fireEvent.change(bank, { target: { value: "First National Bank" } });
+    fireEvent.change(accountNumber, { target: { value: "62000000000" } });
+
+    expect(screen.getByLabelText("Live invoice preview")).toHaveTextContent("First National Bank");
+    expect(screen.getByLabelText("Live invoice preview")).toHaveTextContent("62000000000");
+    await waitFor(() => {
+      expect(window.localStorage.getItem(STORAGE_KEY)).toContain("First National Bank");
+    });
+  });
+
   it("blocks an incomplete PDF and exposes validation errors", async () => {
     render(<InvoiceWorkspace />);
     await screen.findByLabelText("Draft name");

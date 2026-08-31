@@ -4,6 +4,7 @@ import {
   type InvoiceErrors,
   type LineItem,
 } from "./types";
+import { DEFAULT_PAYMENT_DETAILS } from "./profile";
 
 const moneyFormatter = new Intl.NumberFormat("en-ZA", {
   style: "currency",
@@ -58,6 +59,7 @@ export function createDraft(sequence: number): InvoiceDraft {
       email: "",
     },
     lineItems: [createLineItem()],
+    payment: { ...DEFAULT_PAYMENT_DETAILS },
     sellerProfileId: "real-is-rare",
     createdAt: now,
     updatedAt: now,

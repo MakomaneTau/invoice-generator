@@ -1,11 +1,21 @@
 import Image from "next/image";
 import { formatDate, formatMoney, invoiceSubtotal, lineItemAmount } from "@/lib/invoice/invoice";
-import { SELLER_PROFILE } from "@/lib/invoice/profile";
+import { invoicePaymentDetails, SELLER_PROFILE } from "@/lib/invoice/profile";
 import type { InvoiceDraft, SellerProfile } from "@/lib/invoice/types";
 
 export function InvoicePreview({ draft, sellerProfile = SELLER_PROFILE, archived = false }: { draft: InvoiceDraft; sellerProfile?: SellerProfile; archived?: boolean }) {
   const subtotal = invoiceSubtotal(draft);
   const customer = draft.customer;
+  const payment = invoicePaymentDetails(draft, sellerProfile);
+  const paymentRows = [
+    ["Method", payment.method],
+    ["Bank", payment.bank],
+    ["Account holder", payment.accountHolder],
+    ["Account type", payment.accountType],
+    ["Account number", payment.accountNumber],
+    ["Branch code", payment.branchCode],
+    ["Reference", payment.reference],
+  ].filter((row) => row[1].trim());
 
   return (
     <article className="invoice-paper" aria-label={archived ? "Finalized invoice" : "Live invoice preview"}>
@@ -74,15 +84,7 @@ export function InvoicePreview({ draft, sellerProfile = SELLER_PROFILE, archived
       <section className="invoice-bottom">
         <div className="payment-details">
           <p className="invoice-label">Payment details</p>
-          <dl>
-            <div><dt>Method</dt><dd>{sellerProfile.payment.method}</dd></div>
-            <div><dt>Bank</dt><dd>{sellerProfile.payment.bank}</dd></div>
-            <div><dt>Account holder</dt><dd>{sellerProfile.payment.accountHolder}</dd></div>
-            <div><dt>Account type</dt><dd>{sellerProfile.payment.accountType}</dd></div>
-            <div><dt>Account number</dt><dd>{sellerProfile.payment.accountNumber}</dd></div>
-            <div><dt>Branch code</dt><dd>{sellerProfile.payment.branchCode}</dd></div>
-            <div><dt>Reference</dt><dd>{sellerProfile.payment.reference}</dd></div>
-          </dl>
+          {paymentRows.length ? <dl>{paymentRows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl> : <p className="payment-empty">No payment details provided.</p>}
         </div>
         <div className="invoice-totals">
           <div><span>Subtotal</span><strong>{formatMoney(subtotal)}</strong></div>

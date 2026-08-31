@@ -53,6 +53,9 @@ export function InvoiceEditor({ draft, errors, invoiceNumberConflict, onChange }
   const updateCustomer = (key: keyof InvoiceDraft["customer"], value: string) => {
     update("customer", { ...draft.customer, [key]: value });
   };
+  const updatePayment = (key: keyof InvoiceDraft["payment"], value: string) => {
+    update("payment", { ...draft.payment, [key]: value });
+  };
   const updateItem = (index: number, patch: Partial<LineItem>) => {
     update("lineItems", draft.lineItems.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
   };
@@ -113,6 +116,19 @@ export function InvoiceEditor({ draft, errors, invoiceNumberConflict, onChange }
           ))}
         </div>
         <button type="button" className="add-item-wide" onClick={() => update("lineItems", [...draft.lineItems, createLineItem()])}><PlusIcon />Add another line item</button>
+      </section>
+
+      <section className="form-card">
+        <div className="section-heading"><span>04</span><div><h2>Payment details</h2><p>How you would like the customer to pay this invoice.</p></div></div>
+        <div className="form-grid two-columns">
+          <label className="field">Payment method<input value={draft.payment.method} onChange={(event) => updatePayment("method", event.target.value)} placeholder="EFT" /></label>
+          <label className="field">Bank name<input value={draft.payment.bank} onChange={(event) => updatePayment("bank", event.target.value)} placeholder="Bank name" /></label>
+          <label className="field">Account holder<input value={draft.payment.accountHolder} onChange={(event) => updatePayment("accountHolder", event.target.value)} placeholder="Account holder name" /></label>
+          <label className="field">Account type<input value={draft.payment.accountType} onChange={(event) => updatePayment("accountType", event.target.value)} placeholder="Current or savings" /></label>
+          <label className="field">Account number<input inputMode="numeric" value={draft.payment.accountNumber} onChange={(event) => updatePayment("accountNumber", event.target.value)} placeholder="Account number" /></label>
+          <label className="field">Branch code<input inputMode="numeric" value={draft.payment.branchCode} onChange={(event) => updatePayment("branchCode", event.target.value)} placeholder="Branch code" /></label>
+          <label className="field full-field">Payment reference<input value={draft.payment.reference} onChange={(event) => updatePayment("reference", event.target.value)} placeholder="Reference the customer should use" /></label>
+        </div>
       </section>
     </div>
   );

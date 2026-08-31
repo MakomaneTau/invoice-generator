@@ -29,6 +29,11 @@ describe("invoice identity and validation", () => {
     expect(formatInvoiceNumber(1106)).toBe("INV-0001106");
   });
 
+  it("starts each invoice with editable payment details", () => {
+    const draft = createDraft(1106);
+    expect(draft.payment).toMatchObject({ method: "EFT", bank: "Capitec" });
+  });
+
   it("builds a draft name from the invoice number and optional display name", () => {
     expect(formatDraftName("INV-0001106", "")).toBe("INV-0001106");
     expect(formatDraftName("INV-0001106", "Hype Nation")).toBe("INV-0001106 - Hype Nation");

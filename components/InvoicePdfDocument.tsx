@@ -1,6 +1,6 @@
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { formatDate, formatMoney, invoiceSubtotal, lineItemAmount } from "@/lib/invoice/invoice";
-import { SELLER_PROFILE } from "@/lib/invoice/profile";
+import { invoicePaymentDetails, SELLER_PROFILE } from "@/lib/invoice/profile";
 import type { InvoiceDraft, SellerProfile } from "@/lib/invoice/types";
 
 const colours = {
@@ -50,6 +50,7 @@ const styles = StyleSheet.create({
   paymentRow: { flexDirection: "row", marginBottom: 4 },
   paymentKey: { width: "42%", color: colours.muted },
   paymentValue: { width: "58%", fontFamily: "Helvetica-Bold" },
+  paymentEmpty: { color: colours.muted, fontFamily: "Helvetica-Oblique" },
   totals: { width: "40%" },
   totalRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colours.line },
   dueRow: { flexDirection: "row", justifyContent: "space-between", padding: 10, backgroundColor: colours.black, color: colours.white },
@@ -67,15 +68,16 @@ function Detail({ children }: { children: React.ReactNode }) {
 export function InvoicePdfDocument({ draft, logoUrl, sellerProfile = SELLER_PROFILE }: { draft: InvoiceDraft; logoUrl: string; sellerProfile?: SellerProfile }) {
   const subtotal = invoiceSubtotal(draft);
   const customer = draft.customer;
-  const paymentRows: [string, string][] = [
-    ["Method", sellerProfile.payment.method],
-    ["Bank", sellerProfile.payment.bank],
-    ["Account holder", sellerProfile.payment.accountHolder],
-    ["Account type", sellerProfile.payment.accountType],
-    ["Account number", sellerProfile.payment.accountNumber],
-    ["Branch code", sellerProfile.payment.branchCode],
-    ["Reference", sellerProfile.payment.reference],
-  ];
+  const payment = invoicePaymentDetails(draft, sellerProfile);
+  const paymentRows = ([
+    ["Method", payment.method],
+    ["Bank", payment.bank],
+    ["Account holder", payment.accountHolder],
+    ["Account type", payment.accountType],
+    ["Account number", payment.accountNumber],
+    ["Branch code", payment.branchCode],
+    ["Reference", payment.reference],
+  ] satisfies [string, string][]).filter(([, value]) => value.trim());
 
   return (
     <Document title={draft.invoiceNumber} author={sellerProfile.name} subject={`Invoice for ${customer.companyName}`}>
@@ -129,7 +131,7 @@ export function InvoicePdfDocument({ draft, logoUrl, sellerProfile = SELLER_PROF
         </View>
 
         <View style={styles.bottom} wrap={false} minPresenceAhead={130}>
-          <View style={styles.payment}><Text style={styles.label}>Payment details</Text>{paymentRows.map(([key, value]) => <View style={styles.paymentRow} key={key}><Text style={styles.paymentKey}>{key}</Text><Text style={styles.paymentValue}>{value}</Text></View>)}</View>
+          <View style={styles.payment}><Text style={styles.label}>Payment details</Text>{paymentRows.length ? paymentRows.map(([key, value]) => <View style={styles.paymentRow} key={key}><Text style={styles.paymentKey}>{key}</Text><Text style={styles.paymentValue}>{value}</Text></View>) : <Text style={styles.paymentEmpty}>No payment details provided.</Text>}</View>
           <View style={styles.totals}><View style={styles.totalRow}><Text>Subtotal</Text><Text>{formatMoney(subtotal)}</Text></View><View style={styles.dueRow}><Text style={styles.dueText}>Balance due</Text><Text style={styles.dueText}>{formatMoney(subtotal)}</Text></View></View>
         </View>
 

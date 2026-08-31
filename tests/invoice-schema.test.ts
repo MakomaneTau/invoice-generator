@@ -19,4 +19,17 @@ describe("final invoice payload", () => {
     draft.invoiceDate = "not-a-date";
     expect(invoiceDraftSchema.safeParse(draft).success).toBe(false);
   });
+
+  it("accepts customized payment details and rejects extra payment fields", () => {
+    const draft = createDraft(1106);
+    draft.lineItems[0].description = "T-shirts";
+    draft.payment.bank = "First National Bank";
+    draft.payment.reference = "Invoice number";
+
+    expect(invoiceDraftSchema.safeParse(draft).success).toBe(true);
+    expect(invoiceDraftSchema.safeParse({
+      ...draft,
+      payment: { ...draft.payment, routingSecret: "untrusted" },
+    }).success).toBe(false);
+  });
 });

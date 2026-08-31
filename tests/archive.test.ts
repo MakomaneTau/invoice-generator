@@ -37,4 +37,15 @@ describe("invoice archive service", () => {
     await expect(archiveInvoice("allowed-user", createDraft(1106))).rejects.toBeInstanceOf(DuplicateInvoiceNumberError);
     expect(transactionCreate).not.toHaveBeenCalled();
   });
+
+  it("archives the invoice-specific payment details", async () => {
+    const draft = createDraft(1106);
+    draft.payment.bank = "First National Bank";
+
+    await archiveInvoice("allowed-user", draft);
+
+    expect(transactionCreate).toHaveBeenCalledWith(invoiceRef, expect.objectContaining({
+      invoice: expect.objectContaining({ payment: expect.objectContaining({ bank: "First National Bank" }) }),
+    }));
+  });
 });

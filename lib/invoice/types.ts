@@ -1,4 +1,4 @@
-export const INVOICE_SCHEMA_VERSION = 1 as const;
+export const INVOICE_SCHEMA_VERSION = 2 as const;
 
 export type Customer = {
   displayName: string;
@@ -17,6 +17,16 @@ export type LineItem = {
   rateCents: number;
 };
 
+export type PaymentDetails = {
+  method: string;
+  bank: string;
+  accountHolder: string;
+  accountType: string;
+  accountNumber: string;
+  branchCode: string;
+  reference: string;
+};
+
 export type InvoiceDraft = {
   schemaVersion: typeof INVOICE_SCHEMA_VERSION;
   id: string;
@@ -27,6 +37,7 @@ export type InvoiceDraft = {
   dueDate: string;
   customer: Customer;
   lineItems: LineItem[];
+  payment: PaymentDetails;
   sellerProfileId: "real-is-rare";
   createdAt: string;
   updatedAt: string;
@@ -39,15 +50,7 @@ export type SellerProfile = {
   phone: string;
   registrationNumber: string;
   email: string;
-  payment: {
-    method: string;
-    bank: string;
-    accountHolder: string;
-    accountType: string;
-    accountNumber: string;
-    branchCode: string;
-    reference: string;
-  };
+  payment: PaymentDetails;
 };
 
 export type InvoiceErrors = Record<string, string>;

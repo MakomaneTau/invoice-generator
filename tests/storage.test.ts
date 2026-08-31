@@ -23,4 +23,17 @@ describe("invoice storage", () => {
     expect(restored.drafts[0].id).toBe(state.drafts[0].id);
     expect(restored.drafts[0].name).toBe("INV-0000000 - Hype Nation");
   });
+
+  it("migrates existing drafts to editable payment details", () => {
+    const legacyState = JSON.parse(JSON.stringify(createInitialState()));
+    legacyState.schemaVersion = 1;
+    legacyState.drafts[0].schemaVersion = 1;
+    delete legacyState.drafts[0].payment;
+
+    const restored = parseStoredState(JSON.stringify(legacyState));
+
+    expect(restored.schemaVersion).toBe(2);
+    expect(restored.drafts[0].schemaVersion).toBe(2);
+    expect(restored.drafts[0].payment).toMatchObject({ method: "EFT", bank: "Capitec" });
+  });
 });
