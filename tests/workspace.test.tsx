@@ -108,10 +108,32 @@ describe("invoice workspace", () => {
     await screen.findByLabelText("Draft name");
     fireEvent.click(document.querySelector<HTMLButtonElement>(".app-header .button-primary")!);
     expect(await screen.findByRole("alert")).toHaveTextContent("Invoice needs a little more information");
-    expect(screen.getByLabelText(/^Contact \/ display name/)).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText(/^Contact \/ display name/)).toHaveAttribute("aria-invalid", "false");
+    expect(screen.getByLabelText(/^Description/)).toHaveAttribute("aria-invalid", "true");
   });
 
-  it("archives a complete invoice before starting its browser download", async () => {
+  it("switches between the FNB and Capitec payment presets", async () => {
+    render(<InvoiceWorkspace />);
+    await screen.findByLabelText("Draft name");
+
+    fireEvent.click(screen.getByRole("button", { name: "Switch to FNB" }));
+
+    expect(screen.getByLabelText("Bank name")).toHaveValue("FNB");
+    expect(screen.getByLabelText("Account holder")).toHaveValue("N.T Tau");
+    expect(screen.getByLabelText("Account type")).toHaveValue("Gold business account");
+    expect(screen.getByLabelText("Account number")).toHaveValue("63160209954");
+    expect(screen.getByLabelText("Branch code")).toHaveValue("250205");
+    expect(screen.getByRole("button", { name: "Switch to Capitec" })).toBeVisible();
+    expect(screen.getByLabelText("Live invoice preview")).toHaveTextContent("63160209954");
+
+    fireEvent.click(screen.getByRole("button", { name: "Switch to Capitec" }));
+
+    expect(screen.getByLabelText("Bank name")).toHaveValue("Capitec");
+    expect(screen.getByLabelText("Account number")).toHaveValue("1508083205");
+    expect(screen.getByRole("button", { name: "Switch to FNB" })).toBeVisible();
+  });
+
+  it("archives an invoice with blank customer details before starting its browser download", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "history-1" }), { status: 201 }));
     vi.stubGlobal("fetch", fetchMock);
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
@@ -175,9 +197,6 @@ describe("invoice workspace", () => {
 
     render(<InvoiceWorkspace />);
     await screen.findByLabelText("Draft name");
-    fireEvent.change(screen.getByLabelText(/^Contact \/ display name/), { target: { value: "Hype Nation" } });
-    fireEvent.change(screen.getByLabelText("Registered company name"), { target: { value: "HYPE NATION PTY LTD" } });
-    fireEvent.change(screen.getByLabelText("Address"), { target: { value: "Centurion" } });
     fireEvent.change(screen.getByLabelText("Description"), { target: { value: "T-shirts" } });
     fireEvent.click(document.querySelector<HTMLButtonElement>(".app-header .button-primary")!);
 

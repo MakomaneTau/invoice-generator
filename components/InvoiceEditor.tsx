@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronDownIcon, ChevronUpIcon, PlusIcon, TrashIcon } from "./icons";
 import { centsToInput, createLineItem, formatDraftName, formatMoney, inputToCents, lineItemAmount } from "@/lib/invoice/invoice";
+import { CAPITEC_PAYMENT_DETAILS, FNB_PAYMENT_DETAILS } from "@/lib/invoice/profile";
 import type { InvoiceDraft, InvoiceErrors, LineItem } from "@/lib/invoice/types";
 
 type Props = {
@@ -46,6 +47,10 @@ function RateInput({ rateCents, invalid, onChange }: { rateCents: number; invali
 }
 
 export function InvoiceEditor({ draft, errors, invoiceNumberConflict, onChange }: Props) {
+  const isFnbPayment = draft.payment.bank.trim().toUpperCase() === "FNB";
+  const nextPaymentPreset = isFnbPayment ? CAPITEC_PAYMENT_DETAILS : FNB_PAYMENT_DETAILS;
+  const nextPaymentBank = isFnbPayment ? "Capitec" : "FNB";
+
   const update = <K extends keyof InvoiceDraft>(key: K, value: InvoiceDraft[K]) => {
     const nextDraft = { ...draft, [key]: value };
     onChange({ ...nextDraft, name: formatDraftName(nextDraft.invoiceNumber, nextDraft.customer.displayName) });
@@ -81,7 +86,7 @@ export function InvoiceEditor({ draft, errors, invoiceNumberConflict, onChange }
       </section>
 
       <section className="form-card">
-        <div className="section-heading"><span>02</span><div><h2>Customer</h2><p>Who this invoice is addressed to.</p></div></div>
+        <div className="section-heading"><span>02</span><div><h2>Customer</h2><p>Optional details for who this invoice is addressed to.</p></div></div>
         <div className="form-grid two-columns">
           <label className="field">Contact / display name<input value={draft.customer.displayName} onChange={(event) => updateCustomer("displayName", event.target.value)} aria-invalid={Boolean(errors["customer.displayName"])} placeholder="Customer name" /><FieldError message={errors["customer.displayName"]} /></label>
           <label className="field">Registered company name<input value={draft.customer.companyName} onChange={(event) => updateCustomer("companyName", event.target.value)} aria-invalid={Boolean(errors["customer.companyName"])} placeholder="Customer Company (Pty) Ltd" /><FieldError message={errors["customer.companyName"]} /></label>
@@ -119,7 +124,11 @@ export function InvoiceEditor({ draft, errors, invoiceNumberConflict, onChange }
       </section>
 
       <section className="form-card">
-        <div className="section-heading"><span>04</span><div><h2>Payment details</h2><p>How you would like the customer to pay this invoice.</p></div></div>
+        <div className="section-heading items-heading">
+          <span>04</span>
+          <div><h2>Payment details</h2><p>How you would like the customer to pay this invoice.</p></div>
+          <button type="button" className="button button-soft" onClick={() => update("payment", { ...nextPaymentPreset })}>Switch to {nextPaymentBank}</button>
+        </div>
         <div className="form-grid two-columns">
           <label className="field">Payment method<input value={draft.payment.method} onChange={(event) => updatePayment("method", event.target.value)} placeholder="EFT" /></label>
           <label className="field">Bank name<input value={draft.payment.bank} onChange={(event) => updatePayment("bank", event.target.value)} placeholder="Bank name" /></label>

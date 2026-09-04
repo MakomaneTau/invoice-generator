@@ -28,7 +28,7 @@ test("completes an invoice and downloads a PDF", async ({ page, isMobile }) => {
     : page.locator(".app-header").getByRole("button", { name: "Download PDF" });
   await downloadButton.click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe(`${invoiceNumber}-HYPENATION-PTY-LTD.pdf`);
+  expect(download.suggestedFilename()).toBe(`${invoiceNumber}-Hype-Nation.pdf`);
   const stream = await download.createReadStream();
   expect(stream).not.toBeNull();
 
@@ -39,5 +39,5 @@ test("completes an invoice and downloads a PDF", async ({ page, isMobile }) => {
 
   const historyDownload = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download PDF" }).click();
-  expect((await historyDownload).suggestedFilename()).toBe(`${invoiceNumber}-HYPENATION-PTY-LTD.pdf`);
+  expect((await historyDownload).suggestedFilename()).toBe(`${invoiceNumber}-Hype-Nation.pdf`);
 });

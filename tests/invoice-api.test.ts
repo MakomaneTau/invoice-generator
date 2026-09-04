@@ -22,9 +22,6 @@ import { POST } from "@/app/api/invoices/route";
 
 function completeDraft() {
   const draft = createDraft(1106);
-  draft.customer.displayName = "Hype Nation";
-  draft.customer.companyName = "HYPE NATION PTY LTD";
-  draft.customer.address = "Centurion";
   draft.lineItems[0].description = "T-shirts";
   draft.lineItems[0].rateCents = 20_000;
   return draft;

@@ -140,15 +140,6 @@ export function validateInvoice(draft: InvoiceDraft): InvoiceErrors {
   if (!draft.invoiceNumber.trim()) errors.invoiceNumber = "Invoice number is required.";
   if (!draft.invoiceDate) errors.invoiceDate = "Invoice date is required.";
   if (!draft.dueDate) errors.dueDate = "Due date is required.";
-  if (!draft.customer.displayName.trim()) {
-    errors["customer.displayName"] = "Customer name is required.";
-  }
-  if (!draft.customer.companyName.trim()) {
-    errors["customer.companyName"] = "Company name is required.";
-  }
-  if (!draft.customer.address.trim()) {
-    errors["customer.address"] = "Customer address is required.";
-  }
   if (draft.customer.email && !/^\S+@\S+\.\S+$/.test(draft.customer.email)) {
     errors["customer.email"] = "Enter a valid email address.";
   }
@@ -166,8 +157,7 @@ export function validateInvoice(draft: InvoiceDraft): InvoiceErrors {
 }
 
 export function safePdfFilename(draft: InvoiceDraft) {
-  const raw = `${draft.invoiceNumber}-${draft.customer.companyName || draft.customer.displayName || "customer"}`;
-  const safe = raw
+  const safe = draft.name
     .normalize("NFKD")
     .replace(/[^a-zA-Z0-9._-]+/g, "-")
     .replace(/-{2,}/g, "-")

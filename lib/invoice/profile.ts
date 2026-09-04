@@ -1,6 +1,6 @@
 import type { InvoiceDraft, PaymentDetails, SellerProfile } from "./types";
 
-export const DEFAULT_PAYMENT_DETAILS: PaymentDetails = {
+export const CAPITEC_PAYMENT_DETAILS: PaymentDetails = {
   method: "EFT",
   bank: "Capitec",
   accountHolder: "N.T Tau",
@@ -9,6 +9,18 @@ export const DEFAULT_PAYMENT_DETAILS: PaymentDetails = {
   branchCode: "470010",
   reference: "Company name",
 };
+
+export const FNB_PAYMENT_DETAILS: PaymentDetails = {
+  method: "EFT",
+  bank: "FNB",
+  accountHolder: "N.T Tau",
+  accountType: "Gold business account",
+  accountNumber: "63160209954",
+  branchCode: "250205",
+  reference: "Company name",
+};
+
+export const DEFAULT_PAYMENT_DETAILS = CAPITEC_PAYMENT_DETAILS;
 
 export const SELLER_PROFILE: SellerProfile = {
   id: "real-is-rare",

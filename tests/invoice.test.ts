@@ -54,17 +54,18 @@ describe("invoice identity and validation", () => {
     expect(formatDraftName("INV-0001106", "Hype Nation")).toBe("INV-0001106 - Hype Nation");
   });
 
-  it("reports required customer and line-item fields", () => {
+  it("allows blank customer details while requiring line-item details", () => {
     const errors = validateInvoice(createDraft(1106));
-    expect(errors["customer.displayName"]).toBeDefined();
-    expect(errors["customer.companyName"]).toBeDefined();
-    expect(errors["customer.address"]).toBeDefined();
+    expect(errors["customer.displayName"]).toBeUndefined();
+    expect(errors["customer.companyName"]).toBeUndefined();
+    expect(errors["customer.address"]).toBeUndefined();
     expect(errors["lineItems.0.description"]).toBeDefined();
   });
 
-  it("creates a safe PDF filename", () => {
+  it("creates a safe PDF filename from the draft name", () => {
     const draft = createDraft(1106);
-    draft.customer.companyName = "Hype Nation / Centurion";
-    expect(safePdfFilename(draft)).toBe("INV-0001106-Hype-Nation-Centurion.pdf");
+    draft.name = "August retainer / Hype Nation";
+    draft.customer.companyName = "Different customer name";
+    expect(safePdfFilename(draft)).toBe("August-retainer-Hype-Nation.pdf");
   });
 });
