@@ -8,6 +8,7 @@ import {
   inputToCents,
   invoiceSubtotal,
   safePdfFilename,
+  sequenceFromInvoiceNumber,
   validateInvoice,
 } from "@/lib/invoice/invoice";
 
@@ -28,6 +29,8 @@ describe("invoice calculations", () => {
 describe("invoice identity and validation", () => {
   it("formats the local invoice sequence", () => {
     expect(formatInvoiceNumber(1106)).toBe("INV-0001106");
+    expect(sequenceFromInvoiceNumber("INV-0001106")).toBe(1106);
+    expect(sequenceFromInvoiceNumber("custom-number")).toBeNull();
   });
 
   it("starts each invoice with editable payment details", () => {

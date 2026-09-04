@@ -42,18 +42,19 @@ function normalizeDraft(value: unknown): InvoiceDraft | null {
   };
 }
 
-export function createInitialState(): StoredInvoiceState {
-  const draft = createDraft(INITIAL_SEQUENCE);
+export function createInitialState(initialSequence = INITIAL_SEQUENCE): StoredInvoiceState {
+  const sequence = Math.max(INITIAL_SEQUENCE, Math.trunc(initialSequence));
+  const draft = createDraft(sequence);
   return {
     schemaVersion: INVOICE_SCHEMA_VERSION,
-    nextSequence: INITIAL_SEQUENCE,
+    nextSequence: sequence,
     activeDraftId: draft.id,
     drafts: [draft],
   };
 }
 
-export function parseStoredState(raw: string | null): StoredInvoiceState {
-  if (!raw) return createInitialState();
+export function parseStoredState(raw: string | null, minimumNextSequence = INITIAL_SEQUENCE): StoredInvoiceState {
+  if (!raw) return createInitialState(minimumNextSequence);
   try {
     const parsed = JSON.parse(raw) as {
       schemaVersion?: unknown;
@@ -68,7 +69,7 @@ export function parseStoredState(raw: string | null): StoredInvoiceState {
       drafts.some((draft) => draft === null) ||
       typeof parsed.nextSequence !== "number"
     ) {
-      return createInitialState();
+      return createInitialState(minimumNextSequence);
     }
     const normalizedDrafts = drafts as InvoiceDraft[];
     const activeDraftId = typeof parsed.activeDraftId === "string" && normalizedDrafts.some((draft) => draft.id === parsed.activeDraftId)
@@ -76,17 +77,17 @@ export function parseStoredState(raw: string | null): StoredInvoiceState {
       : normalizedDrafts[0].id;
     return {
       schemaVersion: INVOICE_SCHEMA_VERSION,
-      nextSequence: Math.max(INITIAL_SEQUENCE, Math.trunc(parsed.nextSequence)),
+      nextSequence: Math.max(INITIAL_SEQUENCE, Math.trunc(minimumNextSequence), Math.trunc(parsed.nextSequence)),
       activeDraftId,
       drafts: normalizedDrafts,
     };
   } catch {
-    return createInitialState();
+    return createInitialState(minimumNextSequence);
   }
 }
 
-export function loadInvoiceState(storage: Storage): StoredInvoiceState {
-  return parseStoredState(storage.getItem(STORAGE_KEY));
+export function loadInvoiceState(storage: Storage, minimumNextSequence = INITIAL_SEQUENCE): StoredInvoiceState {
+  return parseStoredState(storage.getItem(STORAGE_KEY), minimumNextSequence);
 }
 
 export function saveInvoiceState(storage: Storage, state: StoredInvoiceState) {

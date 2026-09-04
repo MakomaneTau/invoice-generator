@@ -45,6 +45,12 @@ describe("invoice workspace", () => {
     expect(screen.queryByRole("group", { name: "Item 2" })).not.toBeInTheDocument();
   });
 
+  it("uses the database-provided sequence for a fresh workspace", async () => {
+    render(<InvoiceWorkspace initialSequence={1107} />);
+
+    expect(await screen.findByLabelText("Invoice number")).toHaveValue("INV-0001107");
+  });
+
   it("confirms draft deletion in an accessible in-app dialog", async () => {
     render(<InvoiceWorkspace />);
     await screen.findByLabelText("Draft name");

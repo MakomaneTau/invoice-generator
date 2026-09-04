@@ -3,7 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getFirebaseAdminFirestore } from "@/lib/firebase/admin";
-import { invoiceSubtotal } from "./invoice";
+import { invoiceSubtotal, sequenceFromInvoiceNumber } from "./invoice";
 import { SELLER_PROFILE } from "./profile";
 import type { FinalizedInvoice } from "./history";
 import type { InvoiceDraft } from "./types";
@@ -78,6 +78,17 @@ export async function archiveInvoice(uid: string, draft: InvoiceDraft, { overwri
 export async function listFinalizedInvoices(uid: string) {
   const snapshot = await invoiceCollection(uid).orderBy("finalizedAt", "desc").get();
   return snapshot.docs.map((document) => serializeInvoice(document.id, document.data()));
+}
+
+export async function getNextFinalizedInvoiceSequence(uid: string) {
+  const snapshot = await invoiceCollection(uid).get();
+  const usedSequences = snapshot.docs
+    .map((document) => document.data()?.invoice?.invoiceNumber)
+    .filter((invoiceNumber): invoiceNumber is string => typeof invoiceNumber === "string")
+    .map(sequenceFromInvoiceNumber)
+    .filter((sequence): sequence is number => sequence !== null && Number.isSafeInteger(sequence));
+
+  return usedSequences.length ? Math.max(...usedSequences) + 1 : 0;
 }
 
 export async function getFinalizedInvoice(uid: string, id: string) {

@@ -9,6 +9,20 @@ describe("invoice storage", () => {
     expect(state.drafts[0].invoiceNumber).toBe("INV-0000000");
   });
 
+  it("starts a fresh workspace at the database-provided sequence", () => {
+    const state = createInitialState(1107);
+    expect(state.nextSequence).toBe(1107);
+    expect(state.drafts[0].invoiceNumber).toBe("INV-0001107");
+  });
+
+  it("keeps saved drafts while advancing the next available sequence", () => {
+    const saved = createInitialState(20);
+    const restored = parseStoredState(JSON.stringify(saved), 1107);
+
+    expect(restored.drafts[0].invoiceNumber).toBe("INV-0000020");
+    expect(restored.nextSequence).toBe(1107);
+  });
+
   it("recovers from malformed or outdated local data", () => {
     expect(parseStoredState("not-json").drafts).toHaveLength(1);
     expect(parseStoredState(JSON.stringify({ schemaVersion: 0, drafts: [] })).drafts).toHaveLength(1);

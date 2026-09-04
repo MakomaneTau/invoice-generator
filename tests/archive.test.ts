@@ -12,7 +12,7 @@ const invoiceGet = vi.fn();
 const invoiceOrderBy = vi.fn(() => ({ get: invoiceGet }));
 const invoiceDoc = vi.fn((id?: string) => id ? { id } : invoiceRef);
 const nestedCollection = (name: string) => name === "invoices"
-  ? { doc: invoiceDoc, orderBy: invoiceOrderBy }
+  ? { doc: invoiceDoc, orderBy: invoiceOrderBy, get: invoiceGet }
   : { doc: vi.fn(() => reservationRef) };
 const database = {
   collection: vi.fn(() => ({ doc: vi.fn(() => ({ collection: nestedCollection })) })),
@@ -23,7 +23,7 @@ vi.mock("@/lib/firebase/admin", () => ({
   getFirebaseAdminFirestore: () => database,
 }));
 
-import { archiveInvoice, DuplicateInvoiceNumberError, invoiceNumberKey, listFinalizedInvoices, normalizeInvoiceNumber } from "@/lib/invoice/archive";
+import { archiveInvoice, DuplicateInvoiceNumberError, getNextFinalizedInvoiceSequence, invoiceNumberKey, listFinalizedInvoices, normalizeInvoiceNumber } from "@/lib/invoice/archive";
 
 describe("invoice archive service", () => {
   beforeEach(() => {
@@ -74,5 +74,17 @@ describe("invoice archive service", () => {
 
     expect(invoiceOrderBy).toHaveBeenCalledWith("finalizedAt", "desc");
     expect(invoiceGet).toHaveBeenCalledOnce();
+  });
+
+  it("increments the highest finalized invoice number for a new workspace", async () => {
+    invoiceGet.mockResolvedValue({
+      docs: [
+        { data: () => ({ invoice: { invoiceNumber: "INV-0001106" } }) },
+        { data: () => ({ invoice: { invoiceNumber: "INV-0000042" } }) },
+        { data: () => ({ invoice: { invoiceNumber: "CUSTOM" } }) },
+      ],
+    });
+
+    await expect(getNextFinalizedInvoiceSequence("allowed-user")).resolves.toBe(1107);
   });
 });

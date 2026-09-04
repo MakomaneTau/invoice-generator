@@ -9,8 +9,8 @@ import { createInvoicePdfBlob, downloadPdfBlob } from "./PdfDownloadButton";
 import { InvoicePreview } from "./InvoicePreview";
 import { LogoutButton } from "./LogoutButton";
 import { CheckIcon, CopyIcon, DownloadIcon, FileIcon, PlusIcon, TrashIcon } from "./icons";
-import { createDraft, duplicateDraft, safePdfFilename, validateInvoice } from "@/lib/invoice/invoice";
-import { createInitialState, loadInvoiceState, saveInvoiceState } from "@/lib/invoice/storage";
+import { createDraft, duplicateDraft, safePdfFilename, sequenceFromInvoiceNumber, validateInvoice } from "@/lib/invoice/invoice";
+import { createInitialState, INITIAL_SEQUENCE, loadInvoiceState, saveInvoiceState } from "@/lib/invoice/storage";
 import type { InvoiceDraft, InvoiceErrors, StoredInvoiceState } from "@/lib/invoice/types";
 
 type MobileView = "editor" | "preview";
@@ -19,13 +19,8 @@ type ConfirmationRequest =
   | { kind: "delete"; draft: InvoiceDraft }
   | { kind: "overwrite"; invoiceNumber: string };
 
-function sequenceFromNumber(value: string) {
-  const match = value.match(/^INV-(\d+)$/i);
-  return match ? Number(match[1]) : null;
-}
-
 function nextAvailableSequence(state: StoredInvoiceState) {
-  const used = state.drafts.map((draft) => sequenceFromNumber(draft.invoiceNumber)).filter((value): value is number => value !== null);
+  const used = state.drafts.map((draft) => sequenceFromInvoiceNumber(draft.invoiceNumber)).filter((value): value is number => value !== null);
   return Math.max(state.nextSequence, ...used.map((value) => value + 1));
 }
 
@@ -35,7 +30,7 @@ function formatUpdatedAt(value: string) {
   return new Intl.DateTimeFormat("en-ZA", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(date);
 }
 
-export function InvoiceWorkspace() {
+export function InvoiceWorkspace({ initialSequence = INITIAL_SEQUENCE }: { initialSequence?: number }) {
   const [state, setState] = useState<StoredInvoiceState | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("loading");
   const [mobileView, setMobileView] = useState<MobileView>("editor");
@@ -48,16 +43,16 @@ export function InvoiceWorkspace() {
   useEffect(() => {
     const hydrate = window.setTimeout(() => {
       try {
-        setState(loadInvoiceState(window.localStorage));
+        setState(loadInvoiceState(window.localStorage, initialSequence));
         setSaveStatus("saved");
       } catch {
-        setState(createInitialState());
+        setState(createInitialState(initialSequence));
         setSaveStatus("error");
         setNotice("Browser storage is unavailable. You can still create a PDF, but this draft cannot be saved.");
       }
     }, 0);
     return () => window.clearTimeout(hydrate);
-  }, []);
+  }, [initialSequence]);
 
   useEffect(() => {
     if (!state) return;
@@ -172,7 +167,7 @@ export function InvoiceWorkspace() {
       }
       downloadPdfBlob(blob, filename);
       setHistoryConflictNumber(null);
-      const usedSequence = sequenceFromNumber(activeDraft.invoiceNumber);
+      const usedSequence = sequenceFromInvoiceNumber(activeDraft.invoiceNumber);
       setState({ ...state, nextSequence: usedSequence === null ? state.nextSequence : Math.max(state.nextSequence, usedSequence + 1) });
       setNotice(`${overwrite ? "Overwritten" : "Finalized"} and downloaded ${filename}`);
     } catch (error) {

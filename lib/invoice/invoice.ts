@@ -31,6 +31,11 @@ export function formatInvoiceNumber(sequence: number) {
   return `INV-${Math.max(0, Math.trunc(sequence)).toString().padStart(7, "0")}`;
 }
 
+export function sequenceFromInvoiceNumber(value: string) {
+  const match = value.trim().match(/^INV-(\d+)$/i);
+  return match ? Number(match[1]) : null;
+}
+
 export function formatDraftName(invoiceNumber: string, displayName: string) {
   return [invoiceNumber.trim(), displayName.trim()].filter(Boolean).join(" - ") || "Untitled invoice";
 }
