@@ -45,6 +45,24 @@ describe("invoice workspace", () => {
     expect(screen.queryByRole("group", { name: "Item 2" })).not.toBeInTheDocument();
   });
 
+  it("exposes history, duplicate, and sign out in the mobile actions menu", async () => {
+    render(<InvoiceWorkspace />);
+    await screen.findByLabelText("Draft name");
+
+    const trigger = screen.getByRole("button", { name: "More invoice actions" });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(trigger);
+
+    const actions = screen.getByRole("group", { name: "Invoice actions" });
+    expect(within(actions).getByRole("link", { name: "History" })).toHaveAttribute("href", "/history");
+    expect(within(actions).getByRole("button", { name: "Sign out" })).toBeVisible();
+    fireEvent.click(within(actions).getByRole("button", { name: "Duplicate" }));
+
+    expect(screen.getByText("Draft duplicated.")).toBeVisible();
+    expect(screen.queryByRole("group", { name: "Invoice actions" })).not.toBeInTheDocument();
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("uses the database-provided sequence for a fresh workspace", async () => {
     render(<InvoiceWorkspace initialSequence={1107} />);
 

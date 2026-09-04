@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppBrand } from "./AppBrand";
 import { ConfirmationDialog } from "./ConfirmationDialog";
 import { InvoiceEditor } from "./InvoiceEditor";
 import { createInvoicePdfBlob, downloadPdfBlob } from "./PdfDownloadButton";
 import { InvoicePreview } from "./InvoicePreview";
 import { LogoutButton } from "./LogoutButton";
-import { CheckIcon, CopyIcon, DownloadIcon, FileIcon, PlusIcon, TrashIcon } from "./icons";
+import { CheckIcon, CopyIcon, DownloadIcon, FileIcon, MoreIcon, PlusIcon, TrashIcon } from "./icons";
 import { createDraft, duplicateDraft, safePdfFilename, sequenceFromInvoiceNumber, validateInvoice } from "@/lib/invoice/invoice";
 import { createInitialState, INITIAL_SEQUENCE, loadInvoiceState, saveInvoiceState } from "@/lib/invoice/storage";
 import type { InvoiceDraft, InvoiceErrors, StoredInvoiceState } from "@/lib/invoice/types";
@@ -39,6 +39,9 @@ export function InvoiceWorkspace({ initialSequence = INITIAL_SEQUENCE }: { initi
   const [notice, setNotice] = useState<string | null>(null);
   const [historyConflictNumber, setHistoryConflictNumber] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
+  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
+  const mobileActionsRef = useRef<HTMLDivElement>(null);
+  const mobileActionsTriggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const hydrate = window.setTimeout(() => {
@@ -76,6 +79,24 @@ export function InvoiceWorkspace({ initialSequence = INITIAL_SEQUENCE }: { initi
     window.addEventListener("beforeunload", warnIfUnsaved);
     return () => window.removeEventListener("beforeunload", warnIfUnsaved);
   }, [saveStatus]);
+
+  useEffect(() => {
+    if (!mobileActionsOpen) return;
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!mobileActionsRef.current?.contains(event.target as Node)) setMobileActionsOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setMobileActionsOpen(false);
+      mobileActionsTriggerRef.current?.focus();
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileActionsOpen]);
 
   const activeDraft = state?.drafts.find((draft) => draft.id === state.activeDraftId) ?? state?.drafts[0] ?? null;
   const errors = useMemo<InvoiceErrors>(() => activeDraft && showErrors ? validateInvoice(activeDraft) : {}, [activeDraft, showErrors]);
@@ -205,6 +226,26 @@ export function InvoiceWorkspace({ initialSequence = INITIAL_SEQUENCE }: { initi
           <Link className="button button-outline desktop-action" href="/history">History</Link>
           <button type="button" className="button button-outline desktop-action" onClick={duplicateActiveDraft}><CopyIcon />Duplicate</button>
           <LogoutButton className="button button-outline desktop-action" />
+          <div className="mobile-actions" ref={mobileActionsRef}>
+            <button
+              type="button"
+              className="mobile-actions-trigger"
+              aria-label="More invoice actions"
+              aria-expanded={mobileActionsOpen}
+              aria-controls="mobile-invoice-actions"
+              ref={mobileActionsTriggerRef}
+              onClick={() => setMobileActionsOpen((open) => !open)}
+            >
+              <MoreIcon />
+            </button>
+            {mobileActionsOpen && (
+              <div className="mobile-actions-popover" id="mobile-invoice-actions" role="group" aria-label="Invoice actions">
+                <Link href="/history" onClick={() => setMobileActionsOpen(false)}>History</Link>
+                <button type="button" onClick={() => { duplicateActiveDraft(); setMobileActionsOpen(false); }}><CopyIcon />Duplicate</button>
+                <LogoutButton className="mobile-action-button" />
+              </div>
+            )}
+          </div>
           <button type="button" className="button button-primary" onClick={() => void downloadPdf()} disabled={isDownloading}>{isDownloading ? <span className="spinner" /> : <DownloadIcon />}{isDownloading ? "Creating PDF…" : "Download PDF"}</button>
         </div>
       </header>
