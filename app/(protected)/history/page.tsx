@@ -18,7 +18,7 @@ export default async function HistoryPage() {
     <main className="history-shell">
       <header className="app-header"><AppBrand /><div className="header-actions"><Link className="button button-outline" href="/">New invoice</Link><LogoutButton /></div></header>
       <section className="history-content">
-        <div className="history-heading"><div><span>Firestore archive</span><h1>Invoice history</h1><p>Finalized invoice details are read-only. PDFs are generated on your device when requested.</p></div><strong>{invoices.length} invoice{invoices.length === 1 ? "" : "s"}</strong></div>
+        <div className="history-heading"><div><span>Firestore archive</span><h1>Invoice history</h1><p>Browse every finalized invoice. Open one to download it or edit and overwrite the saved record.</p></div><strong>{invoices.length} invoice{invoices.length === 1 ? "" : "s"}</strong></div>
         {invoices.length ? (
           <div className="history-list">
             {invoices.map((entry) => (

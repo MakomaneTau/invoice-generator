@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AppBrand } from "./AppBrand";
+import { ConfirmationDialog } from "./ConfirmationDialog";
 import { InvoiceEditor } from "./InvoiceEditor";
 import { createInvoicePdfBlob, downloadPdfBlob } from "./PdfDownloadButton";
 import { InvoicePreview } from "./InvoicePreview";
@@ -14,6 +15,9 @@ import type { InvoiceDraft, InvoiceErrors, StoredInvoiceState } from "@/lib/invo
 
 type MobileView = "editor" | "preview";
 type SaveStatus = "loading" | "saving" | "saved" | "error";
+type ConfirmationRequest =
+  | { kind: "delete"; draft: InvoiceDraft }
+  | { kind: "overwrite"; invoiceNumber: string };
 
 function sequenceFromNumber(value: string) {
   const match = value.match(/^INV-(\d+)$/i);
@@ -39,6 +43,7 @@ export function InvoiceWorkspace() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [historyConflictNumber, setHistoryConflictNumber] = useState<string | null>(null);
+  const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
 
   useEffect(() => {
     const hydrate = window.setTimeout(() => {
@@ -115,7 +120,7 @@ export function InvoiceWorkspace() {
   };
 
   const deleteDraft = (draft: InvoiceDraft) => {
-    if (!state || !window.confirm(`Delete “${draft.name}”? This cannot be undone.`)) return;
+    if (!state) return;
     if (saveStatus !== "error") setSaveStatus("saving");
     const remaining = state.drafts.filter((item) => item.id !== draft.id);
     if (!remaining.length) {
@@ -126,11 +131,12 @@ export function InvoiceWorkspace() {
     setState({ ...state, drafts: remaining, activeDraftId: state.activeDraftId === draft.id ? remaining[0].id : state.activeDraftId });
   };
 
-  const downloadPdf = async () => {
+  const downloadPdf = async ({ overwrite = false }: { overwrite?: boolean } = {}) => {
     if (!state || !activeDraft || isDownloading) return;
     setShowErrors(true);
     const validationErrors = validateInvoice(activeDraft);
-    if (invoiceNumberConflict) validationErrors.invoiceNumber = invoiceNumberConflict;
+    if (duplicateDraftNumber) validationErrors.invoiceNumber = "This number is already used by another draft.";
+    if (!overwrite && duplicateHistoryNumber) validationErrors.invoiceNumber = "This invoice number is already finalized and cannot be reused.";
     if (Object.keys(validationErrors).length) {
       setNotice("Review the highlighted fields before downloading.");
       setMobileView("editor");
@@ -146,7 +152,7 @@ export function InvoiceWorkspace() {
       const archiveResponse = await fetch("/api/invoices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoice: activeDraft }),
+        body: JSON.stringify({ invoice: activeDraft, overwrite }),
       });
       if (archiveResponse.status === 401) {
         window.location.assign("/login");
@@ -165,14 +171,31 @@ export function InvoiceWorkspace() {
         throw new Error(result?.error || "Invoice could not be archived");
       }
       downloadPdfBlob(blob, filename);
+      setHistoryConflictNumber(null);
       const usedSequence = sequenceFromNumber(activeDraft.invoiceNumber);
       setState({ ...state, nextSequence: usedSequence === null ? state.nextSequence : Math.max(state.nextSequence, usedSequence + 1) });
-      setNotice(`Finalized and downloaded ${filename}`);
+      setNotice(`${overwrite ? "Overwritten" : "Finalized"} and downloaded ${filename}`);
     } catch (error) {
       console.error(error);
       setNotice(error instanceof Error ? `${error.message}. Your draft is safe—please try again.` : "The invoice could not be finalized. Your draft is safe—please try again.");
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const overwriteFinalizedInvoice = () => {
+    if (!activeDraft || isDownloading) return;
+    setConfirmation({ kind: "overwrite", invoiceNumber: activeDraft.invoiceNumber });
+  };
+
+  const confirmRequestedAction = () => {
+    if (!confirmation) return;
+    const request = confirmation;
+    setConfirmation(null);
+    if (request.kind === "delete") {
+      deleteDraft(request.draft);
+    } else {
+      void downloadPdf({ overwrite: true });
     }
   };
 
@@ -187,11 +210,11 @@ export function InvoiceWorkspace() {
           <Link className="button button-outline desktop-action" href="/history">History</Link>
           <button type="button" className="button button-outline desktop-action" onClick={duplicateActiveDraft}><CopyIcon />Duplicate</button>
           <LogoutButton className="button button-outline desktop-action" />
-          <button type="button" className="button button-primary" onClick={downloadPdf} disabled={isDownloading}>{isDownloading ? <span className="spinner" /> : <DownloadIcon />}{isDownloading ? "Creating PDF…" : "Download PDF"}</button>
+          <button type="button" className="button button-primary" onClick={() => void downloadPdf()} disabled={isDownloading}>{isDownloading ? <span className="spinner" /> : <DownloadIcon />}{isDownloading ? "Creating PDF…" : "Download PDF"}</button>
         </div>
       </header>
 
-      {notice && <div className="app-notice" role="status"><span>{notice}</span><button type="button" onClick={() => setNotice(null)} aria-label="Dismiss message">×</button></div>}
+      {notice && <div className="app-notice" role="status"><span>{notice}</span>{duplicateHistoryNumber && <button type="button" className="notice-action" onClick={overwriteFinalizedInvoice} disabled={isDownloading}>{isDownloading ? "Overwriting…" : "Overwrite invoice"}</button>}<button type="button" className="notice-dismiss" onClick={() => setNotice(null)} aria-label="Dismiss message">×</button></div>}
       <div className="mobile-tabs" aria-label="Workspace view"><button type="button" className={mobileView === "editor" ? "active" : ""} onClick={() => setMobileView("editor")}>Editor</button><button type="button" className={mobileView === "preview" ? "active" : ""} onClick={() => setMobileView("preview")}>Preview</button></div>
 
       <div className="workspace-body">
@@ -201,7 +224,7 @@ export function InvoiceWorkspace() {
             {state.drafts.map((draft) => (
               <div className={`draft-card ${draft.id === activeDraft.id ? "active" : ""}`} key={draft.id}>
                 <button type="button" className="draft-select" onClick={() => { setState({ ...state, activeDraftId: draft.id }); setShowErrors(false); }}><FileIcon /><span><strong>{draft.name}</strong><small>{draft.invoiceNumber} · {formatUpdatedAt(draft.updatedAt)}</small></span></button>
-                <button type="button" className="draft-delete" onClick={() => deleteDraft(draft)} aria-label={`Delete ${draft.name}`}><TrashIcon /></button>
+                <button type="button" className="draft-delete" onClick={() => setConfirmation({ kind: "delete", draft })} aria-label={`Delete ${draft.name}`}><TrashIcon /></button>
               </div>
             ))}
           </div>
@@ -212,7 +235,7 @@ export function InvoiceWorkspace() {
         <section className={`editor-panel ${mobileView === "editor" ? "mobile-active" : ""}`} aria-label="Invoice editor">
           {showErrors && Object.keys(errors).length > 0 && <div className="error-summary" role="alert"><strong>Invoice needs a little more information.</strong><span>Complete the highlighted fields, then download again.</span></div>}
           <InvoiceEditor draft={activeDraft} errors={errors} invoiceNumberConflict={invoiceNumberConflict} onChange={updateActiveDraft} />
-          <div className="mobile-download"><button type="button" className="button button-primary" onClick={downloadPdf} disabled={isDownloading}><DownloadIcon />{isDownloading ? "Creating PDF…" : "Download PDF"}</button></div>
+          <div className="mobile-download"><button type="button" className="button button-primary" onClick={() => void downloadPdf()} disabled={isDownloading}><DownloadIcon />{isDownloading ? "Creating PDF…" : "Download PDF"}</button></div>
         </section>
 
         <section className={`preview-panel ${mobileView === "preview" ? "mobile-active" : ""}`} aria-label="Invoice preview">
@@ -220,6 +243,14 @@ export function InvoiceWorkspace() {
           <div className="preview-stage"><InvoicePreview draft={activeDraft} /></div>
         </section>
       </div>
+      {confirmation && <ConfirmationDialog
+        title={confirmation.kind === "delete" ? "Delete invoice draft?" : `Overwrite ${confirmation.invoiceNumber}?`}
+        message={confirmation.kind === "delete" ? `The draft “${confirmation.draft.name}” will be permanently removed from this browser.` : "The saved invoice details in Firestore will be replaced with this version. This action cannot be undone."}
+        confirmLabel={confirmation.kind === "delete" ? "Delete draft" : "Overwrite invoice"}
+        tone={confirmation.kind === "delete" ? "danger" : "warning"}
+        onCancel={() => setConfirmation(null)}
+        onConfirm={confirmRequestedAction}
+      />}
     </main>
   );
 }

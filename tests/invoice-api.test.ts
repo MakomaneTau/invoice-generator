@@ -30,11 +30,11 @@ function completeDraft() {
   return draft;
 }
 
-function invoiceRequest(invoice: unknown = completeDraft()) {
+function invoiceRequest(invoice: unknown = completeDraft(), overwrite = false) {
   return new Request("http://localhost/api/invoices", {
     method: "POST",
     headers: { Origin: "http://localhost", "Content-Type": "application/json" },
-    body: JSON.stringify({ invoice }),
+    body: JSON.stringify({ invoice, overwrite }),
   });
 }
 
@@ -42,7 +42,7 @@ describe("invoice archive endpoint", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     authorizeApiRequest.mockResolvedValue({ ok: true, user: { uid: "allowed-user" } });
-    archiveInvoice.mockResolvedValue({ id: "history-1" });
+    archiveInvoice.mockResolvedValue({ id: "history-1", overwritten: false });
   });
 
   it("rejects a request without an authorized session", async () => {
@@ -60,7 +60,16 @@ describe("invoice archive endpoint", () => {
   it("archives a validated invoice for the session owner", async () => {
     const response = await POST(invoiceRequest());
     expect(response.status).toBe(201);
-    expect(await response.json()).toEqual({ id: "history-1" });
-    expect(archiveInvoice).toHaveBeenCalledWith("allowed-user", expect.objectContaining({ invoiceNumber: "INV-0001106" }));
+    expect(await response.json()).toEqual({ id: "history-1", overwritten: false });
+    expect(archiveInvoice).toHaveBeenCalledWith("allowed-user", expect.objectContaining({ invoiceNumber: "INV-0001106" }), { overwrite: false });
+  });
+
+  it("overwrites a validated invoice when explicitly requested", async () => {
+    archiveInvoice.mockResolvedValue({ id: "history-1", overwritten: true });
+
+    const response = await POST(invoiceRequest(completeDraft(), true));
+
+    expect(response.status).toBe(200);
+    expect(archiveInvoice).toHaveBeenCalledWith("allowed-user", expect.any(Object), { overwrite: true });
   });
 });

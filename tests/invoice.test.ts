@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createDraft,
+  createEditableDraft,
   formatDraftName,
   formatInvoiceNumber,
   formatMoney,
@@ -32,6 +33,17 @@ describe("invoice identity and validation", () => {
   it("starts each invoice with editable payment details", () => {
     const draft = createDraft(1106);
     expect(draft.payment).toMatchObject({ method: "EFT", bank: "Capitec" });
+  });
+
+  it("creates an independent editable draft from a finalized invoice", () => {
+    const finalized = createDraft(1106);
+    finalized.customer.displayName = "Hype Nation";
+    const editable = createEditableDraft(finalized);
+
+    expect(editable.id).not.toBe(finalized.id);
+    expect(editable.invoiceNumber).toBe(finalized.invoiceNumber);
+    expect(editable.name).toBe("INV-0001106 - Hype Nation");
+    expect(editable.lineItems[0].id).not.toBe(finalized.lineItems[0].id);
   });
 
   it("builds a draft name from the invoice number and optional display name", () => {

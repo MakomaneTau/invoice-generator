@@ -10,15 +10,15 @@ export async function POST(request: Request) {
   if (!isSameOrigin(request)) return Response.json({ error: "Invalid request origin" }, { status: 403 });
 
   try {
-    const body = await request.json() as { invoice?: unknown };
+    const body = await request.json() as { invoice?: unknown; overwrite?: unknown };
     const draft = parseInvoiceDraft(body.invoice);
     const validationErrors = validateInvoice(draft);
     if (Object.keys(validationErrors).length) {
       return Response.json({ error: "Invoice is incomplete", fields: validationErrors }, { status: 400 });
     }
 
-    const result = await archiveInvoice(authorization.user.uid, draft);
-    return Response.json(result, { status: 201 });
+    const result = await archiveInvoice(authorization.user.uid, draft, { overwrite: body.overwrite === true });
+    return Response.json(result, { status: result.overwritten ? 200 : 201 });
   } catch (error) {
     if (error instanceof DuplicateInvoiceNumberError) {
       return Response.json({ error: "This invoice number is already in history" }, { status: 409 });

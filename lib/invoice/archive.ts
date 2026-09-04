@@ -10,6 +10,10 @@ import type { InvoiceDraft } from "./types";
 
 export class DuplicateInvoiceNumberError extends Error {}
 
+type ArchiveInvoiceOptions = {
+  overwrite?: boolean;
+};
+
 export function normalizeInvoiceNumber(value: string) {
   return value.trim().toLocaleUpperCase("en-ZA").replace(/\s+/g, " ");
 }
@@ -29,35 +33,50 @@ function serializeInvoice(id: string, data: FirebaseFirestore.DocumentData): Fin
   return { id, ...data, templateVersion: data.templateVersion ?? 1, finalizedAt } as FinalizedInvoice;
 }
 
-export async function archiveInvoice(uid: string, draft: InvoiceDraft) {
+export async function archiveInvoice(uid: string, draft: InvoiceDraft, { overwrite = false }: ArchiveInvoiceOptions = {}) {
   const db = getFirebaseAdminFirestore();
   const invoiceRef = invoiceCollection(uid).doc();
   const reservationRef = db.collection("users").doc(uid).collection("invoiceNumbers").doc(invoiceNumberKey(draft.invoiceNumber));
+  let archivedId = invoiceRef.id;
+  let overwritten = false;
 
   await db.runTransaction(async (transaction) => {
     const reservation = await transaction.get(reservationRef);
-    if (reservation.exists) throw new DuplicateInvoiceNumberError("Invoice number already finalized");
-
-    transaction.create(reservationRef, {
-      invoiceId: invoiceRef.id,
-      invoiceNumber: normalizeInvoiceNumber(draft.invoiceNumber),
-      createdAt: FieldValue.serverTimestamp(),
-    });
-    transaction.create(invoiceRef, {
+    const invoiceData = {
       ownerUid: uid,
       invoice: draft,
       sellerProfile: SELLER_PROFILE,
       subtotalCents: invoiceSubtotal(draft),
       templateVersion: 1,
       finalizedAt: FieldValue.serverTimestamp(),
+    };
+
+    if (reservation.exists) {
+      if (!overwrite) throw new DuplicateInvoiceNumberError("Invoice number already finalized");
+      const existingInvoiceId = reservation.data()?.invoiceId;
+      if (typeof existingInvoiceId !== "string" || !existingInvoiceId) {
+        throw new Error("Invoice number reservation is invalid");
+      }
+      const existingInvoiceRef = invoiceCollection(uid).doc(existingInvoiceId);
+      transaction.set(existingInvoiceRef, invoiceData);
+      archivedId = existingInvoiceId;
+      overwritten = true;
+      return;
+    }
+
+    transaction.create(reservationRef, {
+      invoiceId: invoiceRef.id,
+      invoiceNumber: normalizeInvoiceNumber(draft.invoiceNumber),
+      createdAt: FieldValue.serverTimestamp(),
     });
+    transaction.create(invoiceRef, invoiceData);
   });
 
-  return { id: invoiceRef.id };
+  return { id: archivedId, overwritten };
 }
 
 export async function listFinalizedInvoices(uid: string) {
-  const snapshot = await invoiceCollection(uid).orderBy("finalizedAt", "desc").limit(50).get();
+  const snapshot = await invoiceCollection(uid).orderBy("finalizedAt", "desc").get();
   return snapshot.docs.map((document) => serializeInvoice(document.id, document.data()));
 }
 

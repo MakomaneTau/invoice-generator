@@ -3,6 +3,7 @@ import {
   type InvoiceDraft,
   type InvoiceErrors,
   type LineItem,
+  type PaymentDetails,
 } from "./types";
 import { DEFAULT_PAYMENT_DETAILS } from "./profile";
 
@@ -75,6 +76,21 @@ export function duplicateDraft(source: InvoiceDraft, sequence: number): InvoiceD
     name: formatDraftName(invoiceNumber, source.customer.displayName),
     invoiceNumber,
     lineItems: source.lineItems.map((item) => ({ ...item, id: createId("item") })),
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+export function createEditableDraft(source: InvoiceDraft, fallbackPayment: PaymentDetails = DEFAULT_PAYMENT_DETAILS): InvoiceDraft {
+  const now = new Date().toISOString();
+  return {
+    ...source,
+    schemaVersion: INVOICE_SCHEMA_VERSION,
+    id: createId(),
+    name: formatDraftName(source.invoiceNumber, source.customer.displayName),
+    customer: { ...source.customer },
+    lineItems: source.lineItems.map((item) => ({ ...item, id: createId("item") })),
+    payment: { ...(source.payment ?? fallbackPayment) },
     createdAt: now,
     updatedAt: now,
   };
